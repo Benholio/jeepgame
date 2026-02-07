@@ -52,7 +52,7 @@ export class Vehicle {
     // Create wheels with good grip
     this.frontWheel = Matter.Bodies.circle(
       x + this.wheelOffset,
-      y + this.chassisHeight / 2 + this.wheelRadius + 5,
+      y + this.chassisHeight / 2 + this.wheelRadius,
       this.wheelRadius,
       {
         label: 'frontWheel',
@@ -70,7 +70,7 @@ export class Vehicle {
 
     this.rearWheel = Matter.Bodies.circle(
       x - this.wheelOffset,
-      y + this.chassisHeight / 2 + this.wheelRadius + 5,
+      y + this.chassisHeight / 2 + this.wheelRadius,
       this.wheelRadius,
       {
         label: 'rearWheel',
@@ -89,10 +89,10 @@ export class Vehicle {
     // Front wheel suspension - combination of constraints for stability
     const frontAxle = Matter.Constraint.create({
       bodyA: this.chassis,
-      pointA: { x: this.wheelOffset, y: this.chassisHeight / 2 + 5 },
+      pointA: { x: this.wheelOffset, y: this.chassisHeight / 2 },
       bodyB: this.frontWheel,
       pointB: { x: 0, y: 0 },
-      stiffness: 0.9,
+      stiffness: 1,
       damping: 0.2,
       length: this.wheelRadius
     });
@@ -100,10 +100,10 @@ export class Vehicle {
     // Rear wheel suspension
     const rearAxle = Matter.Constraint.create({
       bodyA: this.chassis,
-      pointA: { x: -this.wheelOffset, y: this.chassisHeight / 2 + 5 },
+      pointA: { x: -this.wheelOffset, y: this.chassisHeight / 2 },
       bodyB: this.rearWheel,
       pointB: { x: 0, y: 0 },
-      stiffness: 0.9,
+      stiffness: 1,
       damping: 0.2,
       length: this.wheelRadius
     });
@@ -114,9 +114,9 @@ export class Vehicle {
       pointA: { x: this.wheelOffset - 15, y: 0 },
       bodyB: this.frontWheel,
       pointB: { x: 0, y: 0 },
-      stiffness: 0.5,
+      stiffness: 1,
       damping: 0.3,
-      length: this.wheelRadius + 20
+      length: this.wheelRadius + 15
     });
 
     const rearStabilizer = Matter.Constraint.create({
@@ -124,9 +124,9 @@ export class Vehicle {
       pointA: { x: -this.wheelOffset + 15, y: 0 },
       bodyB: this.rearWheel,
       pointB: { x: 0, y: 0 },
-      stiffness: 0.5,
+      stiffness: 1,
       damping: 0.3,
-      length: this.wheelRadius + 20
+      length: this.wheelRadius + 15
     });
 
     // Create compound body

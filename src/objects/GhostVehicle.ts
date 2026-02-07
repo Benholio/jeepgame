@@ -105,7 +105,7 @@ export class GhostVehicle {
     // Draw chassis
     this.chassisGraphics.clear();
     this.chassisGraphics.fillStyle(this.color, alpha);
-    this.chassisGraphics.lineStyle(2, this.outlineColor, alpha);
+    this.chassisGraphics.lineStyle(3, this.outlineColor, alpha);
 
     const cx = renderX;
     const cy = state.y;
@@ -133,6 +133,37 @@ export class GhostVehicle {
     this.chassisGraphics.fillPath();
     this.chassisGraphics.strokePath();
 
+    // Draw a "cabin" on top
+    this.chassisGraphics.fillStyle(this.outlineColor, alpha);
+    const cabinWidth = 35;
+    const cabinHeight = 20;
+    const cabinOffsetX = -10;
+    const cabinCorners = [
+      {
+        x: cx + ((cabinOffsetX - cabinWidth/2) * cos - (-hh - cabinHeight) * sin),
+        y: cy + ((cabinOffsetX - cabinWidth/2) * sin + (-hh - cabinHeight) * cos)
+      },
+      {
+        x: cx + ((cabinOffsetX + cabinWidth/2) * cos - (-hh - cabinHeight) * sin),
+        y: cy + ((cabinOffsetX + cabinWidth/2) * sin + (-hh - cabinHeight) * cos)
+      },
+      {
+        x: cx + ((cabinOffsetX + cabinWidth/2) * cos - -hh * sin),
+        y: cy + ((cabinOffsetX + cabinWidth/2) * sin + -hh * cos)
+      },
+      {
+        x: cx + ((cabinOffsetX - cabinWidth/2) * cos - -hh * sin),
+        y: cy + ((cabinOffsetX - cabinWidth/2) * sin + -hh * cos)
+      }
+    ];
+    this.chassisGraphics.beginPath();
+    this.chassisGraphics.moveTo(cabinCorners[0].x, cabinCorners[0].y);
+    for (let i = 1; i < cabinCorners.length; i++) {
+      this.chassisGraphics.lineTo(cabinCorners[i].x, cabinCorners[i].y);
+    }
+    this.chassisGraphics.closePath();
+    this.chassisGraphics.fillPath();
+
     // Calculate wheel positions
     const frontWheelX = cx + (this.wheelOffset * cos - (this.chassisHeight / 2 + this.wheelRadius) * sin);
     const frontWheelY = cy + (this.wheelOffset * sin + (this.chassisHeight / 2 + this.wheelRadius) * cos);
@@ -156,20 +187,30 @@ export class GhostVehicle {
 
   private drawWheel(graphics: Phaser.GameObjects.Graphics, x: number, y: number, angle: number, alpha: number): void {
     graphics.clear();
+
+    // Tire (outer)
     graphics.fillStyle(0x2c3e50, alpha);
-    graphics.lineStyle(2, 0x1a252f, alpha);
-
     graphics.fillCircle(x, y, this.wheelRadius);
-    graphics.strokeCircle(x, y, this.wheelRadius);
 
-    // Draw spoke
-    graphics.lineStyle(3, this.outlineColor, alpha);
-    const spokeX = x + Math.cos(angle) * this.wheelRadius * 0.7;
-    const spokeY = y + Math.sin(angle) * this.wheelRadius * 0.7;
-    graphics.beginPath();
-    graphics.moveTo(x, y);
-    graphics.lineTo(spokeX, spokeY);
-    graphics.strokePath();
+    // Rim (inner)
+    graphics.fillStyle(0x7f8c8d, alpha);
+    graphics.fillCircle(x, y, this.wheelRadius * 0.6);
+
+    // Hub
+    graphics.fillStyle(0x34495e, alpha);
+    graphics.fillCircle(x, y, this.wheelRadius * 0.25);
+
+    // Spokes to show rotation
+    graphics.lineStyle(3, 0x95a5a6, alpha);
+    for (let i = 0; i < 5; i++) {
+      const spokeAngle = angle + (i * Math.PI * 2 / 5);
+      const innerR = this.wheelRadius * 0.25;
+      const outerR = this.wheelRadius * 0.55;
+      graphics.beginPath();
+      graphics.moveTo(x + Math.cos(spokeAngle) * innerR, y + Math.sin(spokeAngle) * innerR);
+      graphics.lineTo(x + Math.cos(spokeAngle) * outerR, y + Math.sin(spokeAngle) * outerR);
+      graphics.strokePath();
+    }
   }
 
   private static darkenColor(color: number, factor: number): number {
