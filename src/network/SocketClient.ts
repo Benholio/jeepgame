@@ -4,7 +4,7 @@ import { PlayerState, ServerMessage, PositionUpdate, TERRAIN_SEED } from '@share
 export type PlayerJoinedCallback = (id: string) => void;
 export type PlayerLeftCallback = (id: string) => void;
 export type PlayersUpdateCallback = (players: PlayerState[]) => void;
-export type WelcomeCallback = (id: string, terrainSeed: number) => void;
+export type WelcomeCallback = (id: string, terrainSeed: number, color: number) => void;
 
 export class SocketClient {
   private socket: Socket;
@@ -41,7 +41,7 @@ export class SocketClient {
           this.terrainSeed = message.terrainSeed;
           console.log('Received welcome, player ID:', this.playerId);
           if (this.onWelcome) {
-            this.onWelcome(message.id, message.terrainSeed);
+            this.onWelcome(message.id, message.terrainSeed, message.color);
           }
           break;
 

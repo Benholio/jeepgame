@@ -20,11 +20,16 @@ export class GhostVehicle {
   private interpolationTime = 0;
   private interpolationDuration = 100; // ms
 
-  constructor(scene: Phaser.Scene, id: string, initialState: PlayerState) {
+  private color: number;
+  private outlineColor: number;
+
+  constructor(scene: Phaser.Scene, id: string, initialState: PlayerState, color: number) {
     this.scene = scene;
     this.id = id;
     this.currentState = { ...initialState };
     this.targetState = { ...initialState };
+    this.color = color;
+    this.outlineColor = GhostVehicle.darkenColor(color, 0.7);
 
     // Create graphics with transparency
     this.chassisGraphics = scene.add.graphics();
@@ -99,8 +104,8 @@ export class GhostVehicle {
 
     // Draw chassis
     this.chassisGraphics.clear();
-    this.chassisGraphics.fillStyle(0xe74c3c, alpha);
-    this.chassisGraphics.lineStyle(2, 0xc0392b, alpha);
+    this.chassisGraphics.fillStyle(this.color, alpha);
+    this.chassisGraphics.lineStyle(2, this.outlineColor, alpha);
 
     const cx = renderX;
     const cy = state.y;
@@ -158,13 +163,20 @@ export class GhostVehicle {
     graphics.strokeCircle(x, y, this.wheelRadius);
 
     // Draw spoke
-    graphics.lineStyle(3, 0xc0392b, alpha);
+    graphics.lineStyle(3, this.outlineColor, alpha);
     const spokeX = x + Math.cos(angle) * this.wheelRadius * 0.7;
     const spokeY = y + Math.sin(angle) * this.wheelRadius * 0.7;
     graphics.beginPath();
     graphics.moveTo(x, y);
     graphics.lineTo(spokeX, spokeY);
     graphics.strokePath();
+  }
+
+  private static darkenColor(color: number, factor: number): number {
+    const r = Math.floor(((color >> 16) & 0xff) * factor);
+    const g = Math.floor(((color >> 8) & 0xff) * factor);
+    const b = Math.floor((color & 0xff) * factor);
+    return (r << 16) | (g << 8) | b;
   }
 
   destroy(): void {

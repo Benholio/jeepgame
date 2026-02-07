@@ -9,6 +9,7 @@ export interface PlayerState {
   rearWheelAngle: number;
   velocityX: number;
   velocityY: number;
+  color: number;
 }
 
 // Client -> Server messages
@@ -45,6 +46,7 @@ export interface Welcome {
   type: 'welcome';
   id: string;
   terrainSeed: number;
+  color: number;
 }
 
 export type ServerMessage = PlayersUpdate | PlayerJoined | PlayerLeft | Welcome;

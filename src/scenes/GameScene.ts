@@ -271,9 +271,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private setupNetworkCallbacks(): void {
-    this.socketClient.setOnWelcome((id, terrainSeed) => {
-      console.log('Welcome! ID:', id, 'Seed:', terrainSeed);
-      // Could recreate terrain with new seed if different
+    this.socketClient.setOnWelcome((id, terrainSeed, color) => {
+      console.log('Welcome! ID:', id, 'Seed:', terrainSeed, 'Color:', color.toString(16));
+      this.vehicle.setColor(color);
     });
 
     this.socketClient.setOnPlayerJoined((id) => {
@@ -300,7 +300,7 @@ export class GameScene extends Phaser.Scene {
 
         if (!ghost) {
           // Create new ghost vehicle
-          ghost = new GhostVehicle(this, player.id, player);
+          ghost = new GhostVehicle(this, player.id, player, player.color);
           this.ghostVehicles.set(player.id, ghost);
         }
 

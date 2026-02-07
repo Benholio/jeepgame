@@ -55,11 +55,13 @@ io.on('connection', (socket: Socket) => {
   // Add player to game room
   gameRoom.addPlayer(socket.id);
 
-  // Send welcome message with player ID and terrain seed
+  // Send welcome message with player ID, terrain seed, and assigned color
+  const player = gameRoom.getPlayer(socket.id);
   const welcomeMessage: ServerMessage = {
     type: 'welcome',
     id: socket.id,
-    terrainSeed: gameRoom.getTerrainSeed()
+    terrainSeed: gameRoom.getTerrainSeed(),
+    color: player!.state.color
   };
   socket.emit('message', welcomeMessage);
 

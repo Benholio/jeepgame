@@ -24,6 +24,10 @@ export class Vehicle {
   private frontWheelGraphics: Phaser.GameObjects.Graphics;
   private rearWheelGraphics: Phaser.GameObjects.Graphics;
 
+  // Colors
+  private bodyColor = 0x3498db;
+  private outlineColor = 0x2980b9;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.scene = scene;
 
@@ -215,8 +219,8 @@ export class Vehicle {
   private render(): void {
     // Draw chassis
     this.chassisGraphics.clear();
-    this.chassisGraphics.fillStyle(0x3498db, 1);
-    this.chassisGraphics.lineStyle(3, 0x2980b9, 1);
+    this.chassisGraphics.fillStyle(this.bodyColor, 1);
+    this.chassisGraphics.lineStyle(3, this.outlineColor, 1);
 
     // Calculate chassis corners based on position and rotation
     const cx = this.chassis.position.x;
@@ -246,7 +250,7 @@ export class Vehicle {
     this.chassisGraphics.strokePath();
 
     // Draw a "cabin" on top
-    this.chassisGraphics.fillStyle(0x2980b9, 1);
+    this.chassisGraphics.fillStyle(this.outlineColor, 1);
     const cabinWidth = 35;
     const cabinHeight = 20;
     const cabinOffsetX = -10;
@@ -310,6 +314,15 @@ export class Vehicle {
       graphics.lineTo(x + Math.cos(spokeAngle) * outerR, y + Math.sin(spokeAngle) * outerR);
       graphics.strokePath();
     }
+  }
+
+  setColor(color: number): void {
+    this.bodyColor = color;
+    // Darken by 70% for outline/cabin
+    const r = Math.floor(((color >> 16) & 0xff) * 0.7);
+    const g = Math.floor(((color >> 8) & 0xff) * 0.7);
+    const b = Math.floor((color & 0xff) * 0.7);
+    this.outlineColor = (r << 16) | (g << 8) | b;
   }
 
   getState() {

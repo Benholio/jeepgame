@@ -9,8 +9,23 @@ export interface Player {
 export class GameRoom {
   private players: Map<string, Player> = new Map();
   private terrainSeed: number = TERRAIN_SEED;
+  private nextColorIndex = 0;
+
+  private static readonly COLORS = [
+    0xe74c3c, // red
+    0x3498db, // blue
+    0x2ecc71, // green
+    0xf39c12, // orange
+    0x9b59b6, // purple
+    0x1abc9c, // teal
+    0xe67e22, // dark orange
+    0xf1c40f, // yellow
+  ];
 
   addPlayer(id: string): void {
+    const color = GameRoom.COLORS[this.nextColorIndex % GameRoom.COLORS.length];
+    this.nextColorIndex++;
+
     const player: Player = {
       id,
       state: {
@@ -21,7 +36,8 @@ export class GameRoom {
         frontWheelAngle: 0,
         rearWheelAngle: 0,
         velocityX: 0,
-        velocityY: 0
+        velocityY: 0,
+        color
       },
       lastUpdate: Date.now()
     };
@@ -34,10 +50,10 @@ export class GameRoom {
     console.log(`Player ${id} left. Total players: ${this.players.size}`);
   }
 
-  updatePlayerState(id: string, state: Omit<PlayerState, 'id'>): void {
+  updatePlayerState(id: string, state: Omit<PlayerState, 'id' | 'color'>): void {
     const player = this.players.get(id);
     if (player) {
-      player.state = { ...state, id };
+      player.state = { ...state, id, color: player.state.color };
       player.lastUpdate = Date.now();
     }
   }
