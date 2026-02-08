@@ -151,6 +151,43 @@ export class Terrain {
     // Render wrapped copies for visual continuity
     this.renderTerrainGraphics(this.wrapGraphicsLeft, -WORLD_WIDTH);
     this.renderTerrainGraphics(this.wrapGraphicsRight, WORLD_WIDTH);
+
+    // Draw finish line on all graphics layers
+    this.drawFinishLine(this.graphics, 0);
+    this.drawFinishLine(this.wrapGraphicsLeft, -WORLD_WIDTH);
+    this.drawFinishLine(this.wrapGraphicsRight, WORLD_WIDTH);
+  }
+
+  private drawFinishLine(graphics: Phaser.GameObjects.Graphics, offsetX: number): void {
+    const finishX = 150 + offsetX;
+    const surfaceY = this.getTerrainHeight(150);
+    const lineHeight = 120;
+    const lineWidth = 20;
+    const cellSize = 10;
+
+    const top = surfaceY - lineHeight;
+    const left = finishX - lineWidth / 2;
+
+    // Draw checkered pattern
+    const cols = Math.floor(lineWidth / cellSize);
+    const rows = Math.floor(lineHeight / cellSize);
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const isWhite = (row + col) % 2 === 0;
+        graphics.fillStyle(isWhite ? 0xffffff : 0x000000, 1);
+        graphics.fillRect(
+          left + col * cellSize,
+          top + row * cellSize,
+          cellSize,
+          cellSize
+        );
+      }
+    }
+
+    // Draw pole
+    graphics.fillStyle(0x888888, 1);
+    graphics.fillRect(finishX - 2, top, 4, lineHeight);
   }
 
   private renderTerrainGraphics(graphics: Phaser.GameObjects.Graphics, offsetX: number): void {
@@ -208,7 +245,7 @@ export class Terrain {
 
   getSpawnPosition(): { x: number; y: number } {
     return {
-      x: 150,
+      x: 200,
       y: this.baseHeight - 80
     };
   }

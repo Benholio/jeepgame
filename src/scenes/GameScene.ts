@@ -24,6 +24,15 @@ export class GameScene extends Phaser.Scene {
   private cameraTarget!: Phaser.GameObjects.Rectangle;
   private lastVehicleX = 0;
 
+  // Lap timing
+  private readonly finishLineX = 150;
+  private lapStartTime = 0;
+  private bestLapTime: number | null = null;
+  private lastCrossX = 0; // track player's x relative to finish line
+  private hasPassedCheckpoint = false; // must travel far enough before crossing counts
+  private lapTimeText!: Phaser.GameObjects.Text;
+  private bestTimeText!: Phaser.GameObjects.Text;
+
   // Mobile touch controls
   private isMobile = false;
   private touchControls = {
@@ -62,6 +71,11 @@ export class GameScene extends Phaser.Scene {
     const spawnPos = this.terrain.getSpawnPosition();
     this.vehicle = new Vehicle(this, spawnPos.x, spawnPos.y);
     this.lastVehicleX = spawnPos.x;
+
+    // Initialize lap timing
+    this.lapStartTime = this.time.now;
+    this.lastCrossX = spawnPos.x;
+    this.hasPassedCheckpoint = false;
 
     // Create invisible camera target that we'll move to follow the vehicle
     this.cameraTarget = this.add.rectangle(spawnPos.x, spawnPos.y, 1, 1, 0x000000, 0);
@@ -120,6 +134,36 @@ export class GameScene extends Phaser.Scene {
     });
     this.playerCountText.setScrollFactor(0);
     this.playerCountText.setDepth(100);
+
+    // Lap timer display (top-right)
+    const rightX = this.scale.width - 10;
+
+    this.lapTimeText = this.add.text(rightX, 10, 'Lap: 00:00.0', {
+      fontSize: '18px',
+      color: '#ffffff',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 }
+    });
+    this.lapTimeText.setOrigin(1, 0);
+    this.lapTimeText.setScrollFactor(0);
+    this.lapTimeText.setDepth(100);
+
+    this.bestTimeText = this.add.text(rightX, 45, 'Best: --:--.--', {
+      fontSize: '18px',
+      color: '#ffff00',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 }
+    });
+    this.bestTimeText.setOrigin(1, 0);
+    this.bestTimeText.setScrollFactor(0);
+    this.bestTimeText.setDepth(100);
+
+    // Reposition on resize
+    this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
+      const rx = gameSize.width - 10;
+      this.lapTimeText.setX(rx);
+      this.bestTimeText.setX(rx);
+    });
 
     // Instructions (only show on non-touch devices)
     if (!this.sys.game.device.input.touch) {
@@ -384,6 +428,13 @@ export class GameScene extends Phaser.Scene {
 
     this.lastVehicleX = pos.x;
 
+    // Lap crossing detection (left-to-right over finish line)
+    this.checkFinishLineCrossing(pos.x, time);
+
+    // Update lap timer HUD
+    const elapsed = time - this.lapStartTime;
+    this.lapTimeText.setText(`Lap: ${this.formatTime(elapsed)}`);
+
     // Update ghost vehicles
     for (const [, ghost] of this.ghostVehicles) {
       ghost.update(delta, pos.x);
@@ -394,6 +445,46 @@ export class GameScene extends Phaser.Scene {
       this.sendPositionUpdate();
       this.lastPositionUpdate = time;
     }
+  }
+
+  private checkFinishLineCrossing(currentX: number, time: number): void {
+    // Player must travel at least 500px past the finish line before crossings count.
+    // This prevents backing up over the line right after spawn/reset.
+    if (!this.hasPassedCheckpoint && currentX > this.finishLineX + 500) {
+      this.hasPassedCheckpoint = true;
+    }
+
+    if (!this.hasPassedCheckpoint) {
+      this.lastCrossX = currentX;
+      return;
+    }
+
+    const prevSide = this.lastCrossX - this.finishLineX;
+    const currSide = currentX - this.finishLineX;
+
+    // Detect left-to-right crossing (prevSide <= 0 and currSide > 0)
+    // But ignore if it looks like a world wrap (large jump)
+    const crossed = prevSide <= 0 && currSide > 0 && Math.abs(currentX - this.lastCrossX) < WORLD_WIDTH / 2;
+
+    if (crossed) {
+      const lapTime = time - this.lapStartTime;
+      if (this.bestLapTime === null || lapTime < this.bestLapTime) {
+        this.bestLapTime = lapTime;
+        this.bestTimeText.setText(`Best: ${this.formatTime(this.bestLapTime)}`);
+      }
+      this.hasPassedCheckpoint = false;
+      this.lapStartTime = time;
+    }
+
+    this.lastCrossX = currentX;
+  }
+
+  private formatTime(ms: number): string {
+    const totalSeconds = ms / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const tenths = Math.floor((totalSeconds * 10) % 10);
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${tenths}`;
   }
 
   private handleInput(): void {
@@ -422,6 +513,10 @@ export class GameScene extends Phaser.Scene {
       this.touchControls.reset = false;
       const spawn = this.terrain.getSpawnPosition();
       this.vehicle.reset(spawn.x, spawn.y);
+      // Restart lap timer without recording a time
+      this.lapStartTime = this.time.now;
+      this.lastCrossX = spawn.x;
+      this.hasPassedCheckpoint = false;
     }
   }
 
