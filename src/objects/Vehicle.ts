@@ -325,6 +325,25 @@ export class Vehicle {
     this.outlineColor = (r << 16) | (g << 8) | b;
   }
 
+  reset(x: number, y: number): void {
+    const wheelY = y + this.chassisHeight / 2 + this.wheelRadius;
+
+    Matter.Body.setPosition(this.chassis, { x, y });
+    Matter.Body.setVelocity(this.chassis, { x: 0, y: 0 });
+    Matter.Body.setAngle(this.chassis, 0);
+    Matter.Body.setAngularVelocity(this.chassis, 0);
+
+    Matter.Body.setPosition(this.frontWheel, { x: x + this.wheelOffset, y: wheelY });
+    Matter.Body.setVelocity(this.frontWheel, { x: 0, y: 0 });
+    Matter.Body.setAngle(this.frontWheel, 0);
+    Matter.Body.setAngularVelocity(this.frontWheel, 0);
+
+    Matter.Body.setPosition(this.rearWheel, { x: x - this.wheelOffset, y: wheelY });
+    Matter.Body.setVelocity(this.rearWheel, { x: 0, y: 0 });
+    Matter.Body.setAngle(this.rearWheel, 0);
+    Matter.Body.setAngularVelocity(this.rearWheel, 0);
+  }
+
   getState() {
     return {
       x: this.chassis.position.x,

@@ -13,6 +13,7 @@ export class GameScene extends Phaser.Scene {
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
+  private resetKey!: Phaser.Input.Keyboard.Key;
 
   private positionUpdateInterval = 50; // 20 Hz
   private lastPositionUpdate = 0;
@@ -29,7 +30,8 @@ export class GameScene extends Phaser.Scene {
     accelerate: false,
     reverse: false,
     tiltUp: false,
-    tiltDown: false
+    tiltDown: false,
+    reset: false
   };
   private touchButtonContainer?: Phaser.GameObjects.Container;
 
@@ -75,6 +77,7 @@ export class GameScene extends Phaser.Scene {
       S: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D)
     };
+    this.resetKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
     // Create UI
     this.createUI();
@@ -121,7 +124,7 @@ export class GameScene extends Phaser.Scene {
     // Instructions (only show on non-touch devices)
     if (!this.sys.game.device.input.touch) {
       this.instructionsText = this.add.text(10, 50,
-        'Controls:\nArrows / WASD - Accelerate & Tilt\nLeft/A, Right/D - Drive\nUp/W, Down/S - Tilt', {
+        'Controls:\nArrows / WASD - Accelerate & Tilt\nLeft/A, Right/D - Drive\nUp/W, Down/S - Tilt\nR - Reset vehicle', {
         fontSize: '14px',
         color: '#ffffff',
         backgroundColor: '#000000',
@@ -195,9 +198,21 @@ export class GameScene extends Phaser.Scene {
     gasZone.on('pointerup', () => { this.touchControls.accelerate = false; });
     gasZone.on('pointerout', () => { this.touchControls.accelerate = false; });
 
+    // Top center - Reset
+    const resetZone = this.add.zone(0, 0, buttonSize, buttonSize)
+      .setScrollFactor(0)
+      .setDepth(101)
+      .setInteractive()
+      .setName('reset');
+
+    const resetBg = this.add.graphics().setScrollFactor(0).setDepth(100);
+    resetBg.setName('resetBg');
+
+    resetZone.on('pointerdown', () => { this.touchControls.reset = true; });
+
     // Store references
-    this.touchButtonContainer.setData('zones', { tiltUpZone, tiltDownZone, brakeZone, gasZone });
-    this.touchButtonContainer.setData('bgs', { tiltUpBg, tiltDownBg, brakeBg, gasBg });
+    this.touchButtonContainer.setData('zones', { tiltUpZone, tiltDownZone, brakeZone, gasZone, resetZone });
+    this.touchButtonContainer.setData('bgs', { tiltUpBg, tiltDownBg, brakeBg, gasBg, resetBg });
 
     // Initial layout
     this.layoutTouchControls();
@@ -243,6 +258,12 @@ export class GameScene extends Phaser.Scene {
     // Update gas
     zones.gasZone.setPosition(positions.gas.x, positions.gas.y);
     this.drawButton(bgs.gasBg, positions.gas.x, positions.gas.y, buttonSize, 0x2ecc71, '\u25B6');
+
+    // Update reset - top center
+    const resetSize = 60;
+    const resetPos = { x: width / 2, y: margin + resetSize / 2 };
+    zones.resetZone.setPosition(resetPos.x, resetPos.y).setSize(resetSize, resetSize);
+    this.drawButton(bgs.resetBg, resetPos.x, resetPos.y, resetSize, 0xf39c12, 'reset');
   }
 
   private drawButton(graphics: Phaser.GameObjects.Graphics, x: number, y: number, size: number, color: number, label: string): void {
@@ -267,6 +288,20 @@ export class GameScene extends Phaser.Scene {
       graphics.fillTriangle(cx - arrowSize, cy, cx + arrowSize/2, cy - arrowSize, cx + arrowSize/2, cy + arrowSize);
     } else if (label === '\u25B6') { // Right arrow
       graphics.fillTriangle(cx + arrowSize, cy, cx - arrowSize/2, cy - arrowSize, cx - arrowSize/2, cy + arrowSize);
+    } else if (label === 'reset') { // Circular reset arrow
+      graphics.lineStyle(4, 0xffffff, 1);
+      graphics.beginPath();
+      graphics.arc(cx, cy, arrowSize * 0.8, -Math.PI * 0.8, Math.PI * 0.5, false);
+      graphics.strokePath();
+      // Arrowhead at end of arc
+      const tipAngle = -Math.PI * 0.8;
+      const tipX = cx + Math.cos(tipAngle) * arrowSize * 0.8;
+      const tipY = cy + Math.sin(tipAngle) * arrowSize * 0.8;
+      graphics.fillTriangle(
+        tipX - 6, tipY - 6,
+        tipX + 6, tipY - 2,
+        tipX - 2, tipY + 6
+      );
     }
   }
 
@@ -380,6 +415,13 @@ export class GameScene extends Phaser.Scene {
       this.vehicle.tilt(-1);
     } else if (tiltDown) {
       this.vehicle.tilt(1);
+    }
+
+    // Reset
+    if (Phaser.Input.Keyboard.JustDown(this.resetKey) || this.touchControls.reset) {
+      this.touchControls.reset = false;
+      const spawn = this.terrain.getSpawnPosition();
+      this.vehicle.reset(spawn.x, spawn.y);
     }
   }
 
