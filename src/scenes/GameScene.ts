@@ -23,6 +23,7 @@ export class GameScene extends Phaser.Scene {
 
   private cameraTarget!: Phaser.GameObjects.Rectangle;
   private lastVehicleX = 0;
+  private cameraZoom = 1;
 
   // Lap timing
   private readonly finishLineX = 150;
@@ -93,11 +94,16 @@ export class GameScene extends Phaser.Scene {
     };
     this.resetKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
-    // Create UI
+    // Detect mobile and set camera zoom before creating UI
+    this.isMobile = this.sys.game.device.input.touch;
+    if (this.isMobile) {
+      this.cameraZoom = 0.65;
+      this.cameras.main.setZoom(this.cameraZoom);
+    }
+
+    // Create UI (accounts for cameraZoom)
     this.createUI();
 
-    // Detect mobile and create touch controls
-    this.isMobile = this.sys.game.device.input.touch;
     if (this.isMobile) {
       this.createTouchControls();
     }
@@ -124,45 +130,58 @@ export class GameScene extends Phaser.Scene {
     graphics.setDepth(-100);
   }
 
+  /** Convert screen X to game X for scrollFactor=0 objects (accounts for zoom around center) */
+  private toGameX(screenX: number): number {
+    return (screenX - this.scale.width / 2) / this.cameraZoom + this.scale.width / 2;
+  }
+
+  /** Convert screen Y to game Y for scrollFactor=0 objects (accounts for zoom around center) */
+  private toGameY(screenY: number): number {
+    return (screenY - this.scale.height / 2) / this.cameraZoom + this.scale.height / 2;
+  }
+
   private createUI(): void {
+    const invZ = 1 / this.cameraZoom;
+
     // Player count display
-    this.playerCountText = this.add.text(10, 10, 'Players: 1', {
+    this.playerCountText = this.add.text(this.toGameX(10), this.toGameY(10), 'Players: 1', {
       fontSize: '18px',
       color: '#ffffff',
       backgroundColor: '#000000',
       padding: { x: 10, y: 5 }
     });
+    this.playerCountText.setScale(invZ);
     this.playerCountText.setScrollFactor(0);
     this.playerCountText.setDepth(100);
 
     // Lap timer display (top-right)
-    const rightX = this.scale.width - 10;
-
-    this.lapTimeText = this.add.text(rightX, 10, 'Lap: 00:00.0', {
+    this.lapTimeText = this.add.text(this.toGameX(this.scale.width - 10), this.toGameY(10), 'Lap: 00:00.0', {
       fontSize: '18px',
       color: '#ffffff',
       backgroundColor: '#000000',
       padding: { x: 10, y: 5 }
     });
+    this.lapTimeText.setScale(invZ);
     this.lapTimeText.setOrigin(1, 0);
     this.lapTimeText.setScrollFactor(0);
     this.lapTimeText.setDepth(100);
 
-    this.bestTimeText = this.add.text(rightX, 45, 'Best: --:--.--', {
+    this.bestTimeText = this.add.text(this.toGameX(this.scale.width - 10), this.toGameY(45), 'Best: --:--.--', {
       fontSize: '18px',
       color: '#ffff00',
       backgroundColor: '#000000',
       padding: { x: 10, y: 5 }
     });
+    this.bestTimeText.setScale(invZ);
     this.bestTimeText.setOrigin(1, 0);
     this.bestTimeText.setScrollFactor(0);
     this.bestTimeText.setDepth(100);
 
     // Reposition on resize
-    this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
-      const rx = gameSize.width - 10;
-      this.lapTimeText.setX(rx);
-      this.bestTimeText.setX(rx);
+    this.scale.on('resize', () => {
+      this.lapTimeText.setPosition(this.toGameX(this.scale.width - 10), this.toGameY(10));
+      this.bestTimeText.setPosition(this.toGameX(this.scale.width - 10), this.toGameY(45));
+      this.playerCountText.setPosition(this.toGameX(10), this.toGameY(10));
     });
 
     // Instructions (only show on non-touch devices)
@@ -268,6 +287,7 @@ export class GameScene extends Phaser.Scene {
   private layoutTouchControls(): void {
     if (!this.touchButtonContainer) return;
 
+    const invZ = 1 / this.cameraZoom;
     const width = this.scale.width;
     const height = this.scale.height;
     const buttonSize = 80;
@@ -279,35 +299,42 @@ export class GameScene extends Phaser.Scene {
 
     if (!zones || !bgs) return;
 
-    // Position zones and redraw backgrounds
-    const positions = {
+    // Compute desired screen positions, then convert to game coords via toGameX/Y
+    const screenPositions = {
       tiltUp: { x: margin + buttonSize / 2, y: height - margin - buttonSize * 1.5 - gap },
       tiltDown: { x: margin + buttonSize / 2, y: height - margin - buttonSize / 2 },
       brake: { x: width - margin - buttonSize * 1.5 - gap, y: height - margin - buttonSize / 2 },
       gas: { x: width - margin - buttonSize / 2, y: height - margin - buttonSize / 2 }
     };
 
+    const gameButtonSize = buttonSize * invZ;
+
     // Update tilt up
-    zones.tiltUpZone.setPosition(positions.tiltUp.x, positions.tiltUp.y);
-    this.drawButton(bgs.tiltUpBg, positions.tiltUp.x, positions.tiltUp.y, buttonSize, 0x3498db, '\u25B2');
+    const tuPos = { x: this.toGameX(screenPositions.tiltUp.x), y: this.toGameY(screenPositions.tiltUp.y) };
+    zones.tiltUpZone.setPosition(tuPos.x, tuPos.y).setSize(gameButtonSize, gameButtonSize);
+    this.drawButton(bgs.tiltUpBg, tuPos.x, tuPos.y, gameButtonSize, 0x3498db, '\u25B2');
 
     // Update tilt down
-    zones.tiltDownZone.setPosition(positions.tiltDown.x, positions.tiltDown.y);
-    this.drawButton(bgs.tiltDownBg, positions.tiltDown.x, positions.tiltDown.y, buttonSize, 0x3498db, '\u25BC');
+    const tdPos = { x: this.toGameX(screenPositions.tiltDown.x), y: this.toGameY(screenPositions.tiltDown.y) };
+    zones.tiltDownZone.setPosition(tdPos.x, tdPos.y).setSize(gameButtonSize, gameButtonSize);
+    this.drawButton(bgs.tiltDownBg, tdPos.x, tdPos.y, gameButtonSize, 0x3498db, '\u25BC');
 
     // Update brake
-    zones.brakeZone.setPosition(positions.brake.x, positions.brake.y);
-    this.drawButton(bgs.brakeBg, positions.brake.x, positions.brake.y, buttonSize, 0xe74c3c, '\u25C0');
+    const brPos = { x: this.toGameX(screenPositions.brake.x), y: this.toGameY(screenPositions.brake.y) };
+    zones.brakeZone.setPosition(brPos.x, brPos.y).setSize(gameButtonSize, gameButtonSize);
+    this.drawButton(bgs.brakeBg, brPos.x, brPos.y, gameButtonSize, 0xe74c3c, '\u25C0');
 
     // Update gas
-    zones.gasZone.setPosition(positions.gas.x, positions.gas.y);
-    this.drawButton(bgs.gasBg, positions.gas.x, positions.gas.y, buttonSize, 0x2ecc71, '\u25B6');
+    const gaPos = { x: this.toGameX(screenPositions.gas.x), y: this.toGameY(screenPositions.gas.y) };
+    zones.gasZone.setPosition(gaPos.x, gaPos.y).setSize(gameButtonSize, gameButtonSize);
+    this.drawButton(bgs.gasBg, gaPos.x, gaPos.y, gameButtonSize, 0x2ecc71, '\u25B6');
 
     // Update reset - top center
     const resetSize = 60;
-    const resetPos = { x: width / 2, y: margin + resetSize / 2 };
-    zones.resetZone.setPosition(resetPos.x, resetPos.y).setSize(resetSize, resetSize);
-    this.drawButton(bgs.resetBg, resetPos.x, resetPos.y, resetSize, 0xf39c12, 'reset');
+    const gameResetSize = resetSize * invZ;
+    const resetPos = { x: this.toGameX(width / 2), y: this.toGameY(margin + resetSize / 2) };
+    zones.resetZone.setPosition(resetPos.x, resetPos.y).setSize(gameResetSize, gameResetSize);
+    this.drawButton(bgs.resetBg, resetPos.x, resetPos.y, gameResetSize, 0xf39c12, 'reset');
   }
 
   private drawButton(graphics: Phaser.GameObjects.Graphics, x: number, y: number, size: number, color: number, label: string): void {

@@ -14,9 +14,9 @@ export class Terrain {
 
   private segmentWidth = 40;
   private baseHeight = 450;
-  private amplitude1 = 50;
-  private amplitude2 = 25;
-  private amplitude3 = 10;
+  private amplitude1 = 80;
+  private amplitude2 = 40;
+  private amplitude3 = 15;
   private frequency1 = 0.002;
   private frequency2 = 0.005;
   private frequency3 = 0.015;
